@@ -4,12 +4,13 @@ const { getCardNames } = require('./scryfall-data.js'); // Get data from our new
 let cardNamesCache = [];
 
 /**
- * Initializes the search-specific cache by getting names from the main data module.
+ * Asynchronously initializes the search-specific cache by streaming the data file.
+ * @returns {Promise<void>}
  */
-function initializeSearchCache() {
+async function initializeSearchCache() {
     console.log('Initializing fuzzy search name cache...');
-    cardNamesCache = getCardNames();
-    console.log(`✅ Search cache initialized with ${cardNamesCache.length} names.`);
+    // This now performs an expensive file stream operation, but only once at startup.
+    cardNamesCache = await getCardNames();
 }
 
 /**

@@ -47,18 +47,15 @@ for (const file of eventFiles) {
 client.once(Events.ClientReady, async (readyClient) => {
 	console.log(`Bot logged in as ${readyClient.user.tag}. Initializing data caches...`);
     
-    // --- NEW STARTUP ORDER ---
     // 1. Ensure the bulk data file is downloaded and up-to-date.
     await initializeScryfallCache();
 
-    // 2. Load the ENTIRE dataset into memory.
-    await loadAllCardsData();
-
-    // 3. Initialize the search utility with names from the main cache.
-    initializeSearchCache();
+    // 2. Initialize the search utility by streaming the file to get names.
+    // The full dataset is NOT loaded into memory.
+    await initializeSearchCache();
 
     console.log('✅ Caches are loaded. Bot is fully operational.');
 });
 
-
+// Log in to Discord with your client's token
 client.login(token);
