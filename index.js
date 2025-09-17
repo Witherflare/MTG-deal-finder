@@ -1,12 +1,10 @@
-// index.js
 require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, GatewayIntentBits, Events } = require('discord.js');
 const token = process.env.DISCORD_TOKEN;
-const { initializeScryfallCache } = require('./utils/scryfall-cache.js');
-const { loadAllCardsData } = require('./utils/scryfall-data.js');
-const { initializeSearchCache } = require('./utils/search.js');
+const { initializeDatabase } = require('./utils/database.js');
+const { initializeWatcher } = require('./utils/watcher.js');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -45,17 +43,14 @@ for (const file of eventFiles) {
 
 // --- Bot Startup Logic ---
 client.once(Events.ClientReady, async (readyClient) => {
-	console.log(`Bot logged in as ${readyClient.user.tag}. Initializing data caches...`);
+	console.log(`Bot logged in as ${readyClient.user.tag}. Initializing...`);
     
-    // 1. Ensure the bulk data file is downloaded and up-to-date.
-    await initializeScryfallCache();
+    initializeDatabase();
+    
+    // Pass the client instance to the watcher
+    initializeWatcher(readyClient);
 
-    // 2. Initialize the search utility by streaming the file to get names.
-    // The full dataset is NOT loaded into memory.
-    await initializeSearchCache();
-
-    console.log('✅ Caches are loaded. Bot is fully operational.');
+    console.log('✅ Bot is fully operational.');
 });
 
-// Log in to Discord with your client's token
 client.login(token);
