@@ -2,7 +2,6 @@ const { chromium } = require('playwright');
 const axios = require('axios');
 const db = require('./database');
 const { analyzeCard } = require('./scraper');
-const { updateDashboardGraph } = require('./dashboard-manager');
 
 // The interval for how often the watcher runs (e.g., every 4 hours)
 const WATCHER_INTERVAL_MS = 4 * 60 * 60 * 1000;
@@ -63,16 +62,6 @@ async function runWatcherCycle(client) {
     }
     
     await browser.close();
-    console.log('--- ✅ Watcher Scrape Finished ---');
-    
-    // After scraping, update all the graphs in the dashboard
-    console.log('--- 📊 Updating Dashboard Graphs ---');
-    const updatedWatchlist = await db.getWatchlist();
-    for (const item of updatedWatchlist) {
-        await updateDashboardGraph(client, item);
-    }
-    console.log('--- ✅ Dashboard Update Finished ---');
-
     isRunning = false;
 }
 

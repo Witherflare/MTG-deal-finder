@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG Market Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/awesomplete@1.1.5/awesomplete.css" />
+    <script src="https://cdn.jsdelivr.net/npm/awesomplete@1.1.5/awesomplete.min.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@^3.0.0/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@^3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>MTG Market Search</h1>
+        <div class="search-container">
+            <input type="text" id="search-bar" placeholder="Enter a card name..." class="awesomplete">
+            <div id="printings-container"></div>
+            <div id="action-buttons" class="action-buttons">
+                <h3 id="selected-printing-text"></h3>
+                <button id="btn-scrape">Get Price (Temporary)</button>
+                <button id="btn-watch">Watch This Printing</button>
+            </div>
+            <div id="results-container"></div>
+        </div>
+        <a href="/dashboard" class="dashboard-link">View Permanent Watchlist Dashboard &rarr;</a>
+    </div>
+    <script src="/search.js"></script>
+</body>
+</html>

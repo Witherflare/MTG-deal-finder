@@ -14,7 +14,7 @@ function initializeDatabase() {
                 PRIMARY KEY (scryfall_id, timestamp)
             )
         `);
-        // ADD collector_number and scryfall_uri columns to the watchlist
+        // ADD image_uri column to the watchlist
         db.run(`
             CREATE TABLE IF NOT EXISTS watchlist (
                 scryfall_id TEXT PRIMARY KEY,
@@ -22,12 +22,43 @@ function initializeDatabase() {
                 set_name TEXT NOT NULL,
                 collector_number TEXT NOT NULL,
                 scryfall_uri TEXT NOT NULL,
+                image_uri TEXT,
                 last_scraped TEXT,
                 message_id TEXT 
             )
         `);
     });
     console.log('✅ Database initialized successfully.');
+}
+
+/**
+ * Adds a specific card printing to the watchlist.
+ * @param {object} cardPrinting The full card object from the scryfall data.
+ * @returns {Promise<string>} A promise that resolves with a success or failure message.
+ */
+function addToWatchlist(cardPrinting) {
+    return new Promise((resolve) => {
+        const sql = `INSERT INTO watchlist (scryfall_id, card_name, set_name, collector_number, scryfall_uri, image_uri) VALUES (?, ?, ?, ?, ?, ?)`;
+        const params = [
+            cardPrinting.id,
+            cardPrinting.name,
+            cardPrinting.set_name,
+            cardPrinting.collector_number,
+            cardPrinting.scryfall_uri,
+            cardPrinting.image_uris?.art_crop || cardPrinting.image_uris?.normal // Store the image URL
+        ];
+        db.run(sql, params, function(err) {
+            if (err) {
+                if (err.code === 'SQLITE_CONSTRAINT') {
+                    resolve(`**${cardPrinting.name} (${cardPrinting.set_name})** is already on the watchlist.`);
+                } else {
+                    resolve('An error occurred while adding to the watchlist.');
+                }
+            } else {
+                resolve(`Successfully added **${cardPrinting.name} (${cardPrinting.set_name})** to the watchlist.`);
+            }
+        });
+    });
 }
 
 
@@ -47,35 +78,6 @@ function saveScrapeData(scryfallId, tcgData, manapoolData) {
 function setMessageIdForWatchedCard(scryfallId, messageId) {
     db.run(`UPDATE watchlist SET message_id = ? WHERE scryfall_id = ?`, [messageId, scryfallId], (err) => {
         if (err) console.error('Database Error - Failed to set message ID:', err.message);
-    });
-}
-
-/**
- * Adds a specific card printing to the watchlist.
- * @param {object} cardPrinting The full card object from the scryfall data.
- * @returns {Promise<string>} A promise that resolves with a success or failure message.
- */
-function addToWatchlist(cardPrinting) {
-    return new Promise((resolve) => {
-        const sql = `INSERT INTO watchlist (scryfall_id, card_name, set_name, collector_number, scryfall_uri) VALUES (?, ?, ?, ?, ?)`;
-        const params = [
-            cardPrinting.id,
-            cardPrinting.name,
-            cardPrinting.set_name,
-            cardPrinting.collector_number,
-            cardPrinting.scryfall_uri
-        ];
-        db.run(sql, params, function(err) {
-            if (err) {
-                if (err.code === 'SQLITE_CONSTRAINT') {
-                    resolve(`**${cardPrinting.name} (${cardPrinting.set_name})** is already on the watchlist.`);
-                } else {
-                    resolve('An error occurred while adding to the watchlist.');
-                }
-            } else {
-                resolve(`Successfully added **${cardPrinting.name} (${cardPrinting.set_name})** to the watchlist.`);
-            }
-        });
     });
 }
 

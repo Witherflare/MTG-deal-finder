@@ -1,56 +1,27 @@
 require('dotenv').config();
-const fs = require('node:fs');
+const express = require('express');
 const path = require('node:path');
-const { Client, Collection, GatewayIntentBits, Events } = require('discord.js');
-const token = process.env.DISCORD_TOKEN;
-const { initializeDatabase } = require('./utils/database.js');
-const { initializeWatcher } = require('./utils/watcher.js');
+const db = require('./utils/database');
+const { initializeWatcher } = require('./utils/watcher');
+const { initializeCardNameCache } = require('./utils/card-data');
+const apiRoutes = require('./routes/api');
+const viewRoutes = require('./routes/views');
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-// --- Command Handling ---
-client.commands = new Collection();
-const foldersPath = path.join(__dirname, 'commands');
-const commandFolders = fs.readdirSync(foldersPath);
+db.initializeDatabase();
+initializeWatcher();
+initializeCardNameCache();
 
-for (const folder of commandFolders) {
-    const commandsPath = path.join(foldersPath, folder);
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        const command = require(filePath);
-        if ('data' in command && 'execute' in command) {
-            client.commands.set(command.data.name, command);
-        } else {
-            console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
-        }
-    }
-}
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
 
-// --- Event Handling ---
-const eventsPath = path.join(__dirname, 'events');
-const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
+app.use('/api', apiRoutes);
+app.use('/', viewRoutes);
 
-for (const file of eventFiles) {
-	const filePath = path.join(eventsPath, file);
-	const event = require(filePath);
-	if (event.once) {
-		client.once(event.name, (...args) => event.execute(...args));
-	} else {
-		client.on(event.name, (...args) => event.execute(...args));
-	}
-}
-
-// --- Bot Startup Logic ---
-client.once(Events.ClientReady, async (readyClient) => {
-	console.log(`Bot logged in as ${readyClient.user.tag}. Initializing...`);
-    
-    initializeDatabase();
-    
-    // Pass the client instance to the watcher
-    initializeWatcher(readyClient);
-
-    console.log('✅ Bot is fully operational.');
+app.listen(PORT, () => {
+    console.log(`🚀 Server is running at http://localhost:${PORT}`);
+    console.log(`-> Main site: http://localhost:${PORT}`);
+    console.log(`-> Dashboard: http://localhost:${PORT}/dashboard`);
 });
-
-client.login(token);
