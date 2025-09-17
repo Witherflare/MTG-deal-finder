@@ -11,9 +11,6 @@ function initializeDatabase() {
                 timestamp TEXT NOT NULL,
                 tcg_nm REAL, tcg_lp REAL, tcg_mp REAL, tcg_hp REAL, tcg_dmg REAL,
                 mana_nm REAL, mana_lp REAL, mana_mp REAL, mana_hp REAL, mana_dmg REAL,
-                ck_nm REAL, ck_ex REAL, ck_vg REAL, ck_g REAL,
-                scg_nm REAL, scg_pl REAL, scg_hp REAL,
-                csi_nm REAL, csi_pl REAL, csi_hp REAL,
                 PRIMARY KEY (scryfall_id, timestamp)
             )
         `);
@@ -65,10 +62,6 @@ function saveScrapeData(scryfallId, allData) {
         scryfallId, timestamp,
         allData.tcgplayerData?.lowestPrices?.NM || null, allData.tcgplayerData?.lowestPrices?.LP || null, allData.tcgplayerData?.lowestPrices?.MP || null, allData.tcgplayerData?.lowestPrices?.HP || null, allData.tcgplayerData?.lowestPrices?.DMG || null,
         allData.manapoolData?.lowestPrices?.NM || null, allData.manapoolData?.lowestPrices?.LP || null, allData.manapoolData?.lowestPrices?.MP || null, allData.manapoolData?.lowestPrices?.HP || null, allData.manapoolData?.lowestPrices?.DMG || null,
-        allData.cardkingdomData?.lowestPrices?.NM || null, allData.cardkingdomData?.lowestPrices?.EX || null, allData.cardkingdomData?.lowestPrices?.VG || null, allData.cardkingdomData?.lowestPrices?.G || null,
-        allData.starcitygamesData?.lowestPrices?.NM || null, allData.starcitygamesData?.lowestPrices?.PL || null, allData.starcitygamesData?.lowestPrices?.HP || null,
-        allData.coolstuffincData?.lowestPrices?.NM || null,
-        allData.channelfireballData?.lowestPrices?.NM || null,
     ];
     db.run(sql, params, (err) => {
         if (err) console.error('Database Error - Failed to save scrape data:', err.message);

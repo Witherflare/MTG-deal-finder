@@ -1,9 +1,6 @@
 // witherflare/mtg-deal-finder/utils/scraper.js
 const { scrapeTcgplayerData } = require('../scrapers/tcgplayer');
 const { scrapeManaPoolListings } = require('../scrapers/manapool');
-const { scrapeCardKingdom } = require('../scrapers/cardkingdom');
-const { scrapeStarCityGames } = require('../scrapers/starcitygames');
-const { scrapeCoolStuffInc } = require('../scrapers/coolstuffinc');
 
 /**
  * Analyzes a card by scraping data from multiple vendors.
@@ -39,27 +36,6 @@ async function analyzeCard(page, card) {
     } catch (error) {
         console.error(`  ... ❌ Failed to scrape ManaPool for ${card.cardName}: ${error.message}`);
         result.manapoolData = { error: error.message };
-    }
-
-    try {
-        result.cardkingdomData = await scrapeCardKingdom(page, card);
-    } catch (error) {
-        console.error(`  ... ❌ Failed to scrape Card Kingdom for ${card.cardName}: ${error.message}`);
-        result.cardkingdomData = { error: error.message };
-    }
-
-    // try {
-    //     result.starcitygamesData = await scrapeStarCityGames(page, card);
-    // } catch (error) {
-    //     console.error(`  ... ❌ Failed to scrape Star City Games for ${card.cardName}: ${error.message}`);
-    //     result.starcitygamesData = { error: error.message };
-    // }
-
-    try {
-        result.coolstuffincData = await scrapeCoolStuffInc(page, card);
-    } catch (error) {
-        console.error(`  ... ❌ Failed to scrape CoolStuffInc for ${card.cardName}: ${error.message}`);
-        result.coolstuffincData = { error: error.message };
     }
 
     console.log(`  ... ✔️ Finished scraping ${card.cardName}.`);

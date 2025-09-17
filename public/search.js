@@ -101,9 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="results-grid">
                 <div><h4>TCGplayer</h4><ul>${createPriceList(result.tcgplayerData)}</ul></div>
                 <div><h4>ManaPool</h4><ul>${createPriceList(result.manapoolData)}</ul></div>
-                <div><h4>Card Kingdom</h4><ul>${createPriceList(result.cardkingdomData)}</ul></div>
-                <div><h4>Star City Games</h4><ul>${createPriceList(result.starcitygamesData)}</ul></div>
-                <div><h4>CoolStuffInc</h4><ul>${createPriceList(result.coolstuffincData)}</ul></div>
             </div>
         `;
     }

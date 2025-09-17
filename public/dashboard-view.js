@@ -46,10 +46,6 @@ function createChart(canvas, history) {
             datasets: [
                 { label: 'TCGplayer (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.tcg_nm })), borderColor: '#fd5c63' },
                 { label: 'ManaPool (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.mana_nm })), borderColor: '#0d6efd' },
-                { label: 'Card Kingdom (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.ck_nm })), borderColor: '#28a745' },
-                { label: 'Star City Games (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.scg_nm })), borderColor: '#ffc107' },
-                { label: 'CoolStuffInc (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.csi_nm })), borderColor: '#6f42c1' },
-                { label: 'ChannelFireball (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.cfb_nm })), borderColor: '#fd7e14' }
             ]
         },
         options: {
