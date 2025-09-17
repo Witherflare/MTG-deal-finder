@@ -2,7 +2,7 @@
 
 async function scrapeManaPoolListings(page, manaPoolUrl) {
     console.log(`  -> Scraping ManaPool...`);
-    await page.goto(manaPoolUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.goto(manaPoolUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
     await page.waitForSelector('li .font-bold.text-green-700', { timeout: 20000 });
 
     const listingElements = await page.locator('.flow-root li').all();

@@ -104,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div><h4>Card Kingdom</h4><ul>${createPriceList(result.cardkingdomData)}</ul></div>
                 <div><h4>Star City Games</h4><ul>${createPriceList(result.starcitygamesData)}</ul></div>
                 <div><h4>CoolStuffInc</h4><ul>${createPriceList(result.coolstuffincData)}</ul></div>
-                <div><h4>ChannelFireball</h4><ul>${createPriceList(result.channelfireballData)}</ul></div>
             </div>
         `;
     }

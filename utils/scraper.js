@@ -4,7 +4,6 @@ const { scrapeManaPoolListings } = require('../scrapers/manapool');
 const { scrapeCardKingdom } = require('../scrapers/cardkingdom');
 const { scrapeStarCityGames } = require('../scrapers/starcitygames');
 const { scrapeCoolStuffInc } = require('../scrapers/coolstuffinc');
-const { scrapeChannelFireball } = require('../scrapers/channelfireball');
 
 /**
  * Analyzes a card by scraping data from multiple vendors.
@@ -20,7 +19,6 @@ async function analyzeCard(page, card) {
         cardkingdomData: null,
         starcitygamesData: null,
         coolstuffincData: null,
-        channelfireballData: null,
         error: null 
     };
 
@@ -31,16 +29,40 @@ async function analyzeCard(page, card) {
 
     try {
         result.tcgplayerData = await scrapeTcgplayerData(page, card.tcgplayer_id);
-        result.manapoolData = await scrapeManaPoolListings(page, card.manaPoolUrl);
-        result.cardkingdomData = await scrapeCardKingdom(page, card);
-        result.starcitygamesData = await scrapeStarCityGames(page, card);
-        result.coolstuffincData = await scrapeCoolStuffInc(page, card);
-        
-        console.log(`  ... ✔️ Successfully scraped ${card.cardName}.`);
     } catch (error) {
-        console.error(`  ... ❌ Failed to scrape ${card.cardName}: ${error.message}`);
-        result.error = error.message;
+        console.error(`  ... ❌ Failed to scrape TCGplayer for ${card.cardName}: ${error.message}`);
+        result.tcgplayerData = { error: error.message };
     }
+
+    try {
+        result.manapoolData = await scrapeManaPoolListings(page, card.manaPoolUrl);
+    } catch (error) {
+        console.error(`  ... ❌ Failed to scrape ManaPool for ${card.cardName}: ${error.message}`);
+        result.manapoolData = { error: error.message };
+    }
+
+    try {
+        result.cardkingdomData = await scrapeCardKingdom(page, card);
+    } catch (error) {
+        console.error(`  ... ❌ Failed to scrape Card Kingdom for ${card.cardName}: ${error.message}`);
+        result.cardkingdomData = { error: error.message };
+    }
+
+    // try {
+    //     result.starcitygamesData = await scrapeStarCityGames(page, card);
+    // } catch (error) {
+    //     console.error(`  ... ❌ Failed to scrape Star City Games for ${card.cardName}: ${error.message}`);
+    //     result.starcitygamesData = { error: error.message };
+    // }
+
+    try {
+        result.coolstuffincData = await scrapeCoolStuffInc(page, card);
+    } catch (error) {
+        console.error(`  ... ❌ Failed to scrape CoolStuffInc for ${card.cardName}: ${error.message}`);
+        result.coolstuffincData = { error: error.message };
+    }
+
+    console.log(`  ... ✔️ Finished scraping ${card.cardName}.`);
 
     return result;
 }

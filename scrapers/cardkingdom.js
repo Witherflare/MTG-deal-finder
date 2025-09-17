@@ -15,41 +15,64 @@ const conditionMap = {
  */
 async function scrapeCardKingdom(page, card) {
     console.log(`  -> Scraping Card Kingdom for ${card.cardName}...`);
-    const cardName = card.cardName.split(' // ')[0];
-    const url = `https://www.cardkingdom.com/mtg/${card.setName.toLowerCase().replace(/ /g, '-')}/${cardName.toLowerCase().replace(/ /g, '-')}`;
+    
+    // Format card and set names for the URL
+    const cardName = card.cardName.split(' // ')[0]
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '') // remove special characters except hyphen
+        .replace(/\s+/g, '-');
+        
+    const setName = card.setName.toLowerCase()
+        .replace(/[^\w\s-]/g, '') // remove special characters except hyphen
+        .replace(':', '') // remove colons often found in set names
+        .replace(/\s+/g, '-');
+
+    const url = `https://www.cardkingdom.com/mtg/${setName}/${cardName}`;
     
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
     try {
-        await page.waitForSelector('.itemContentWrapper', { timeout: 20000 });
+        await page.waitForSelector('.product-card', { timeout: 20000 });
     } catch (error) {
-        console.log(`Could not find selector for ${card.cardName}. It might be out of stock or the name is mismatched.`);
-        return { lowestPrices: {} };
-    }
-
-    const listingElements = await page.locator('.itemContentWrapper').all();
-    if (listingElements.length === 0) {
-        console.log(`No Card Kingdom listings found for ${card.cardName}.`);
+        console.log(`Could not find product card for ${card.cardName}. It might be out of stock or the name/set is mismatched.`);
         return { lowestPrices: {} };
     }
 
     const data = { lowestPrices: {} };
+    const productCards = await page.locator('.product-card').all();
 
-    for (const item of listingElements) {
+    for (const productCard of productCards) {
         try {
-            const isFoil = await item.locator('span:text("Foil")').count() > 0;
-            if (isFoil) continue;
+            const titleElement = productCard.locator('.product-card-title');
+            const title = await titleElement.textContent();
 
-            const conditionText = await item.locator('.styleDescription').textContent();
-            const priceText = await item.locator('.price').textContent();
-            const price = parseFloat(priceText.replace('$', ''));
-            const conditionCode = conditionMap[conditionText.trim()];
-            
-            if (conditionCode && (!data.lowestPrices[conditionCode] || price < data.lowestPrices[conditionCode])) {
-                data.lowestPrices[conditionCode] = price;
+            // Skip foil versions
+            if (title.includes('Foil')) {
+                continue;
+            }
+
+            // Find the table with price data
+            const priceTable = productCard.locator('table.product-card-table');
+            const rows = await priceTable.locator('tbody tr').all();
+
+            for (const row of rows) {
+                const qtyText = await row.locator('.product-card-qty').textContent();
+                if (qtyText.trim().toLowerCase() === 'out of stock') {
+                    continue;
+                }
+                
+                const conditionText = await row.locator('.product-card-condition').textContent();
+                const priceText = await row.locator('.product-card-price').textContent();
+                
+                const conditionCode = conditionMap[conditionText.trim()];
+                const price = parseFloat(priceText.replace('$', '').trim());
+
+                if (conditionCode && (!data.lowestPrices[conditionCode] || price < data.lowestPrices[conditionCode])) {
+                    data.lowestPrices[conditionCode] = price;
+                }
             }
         } catch (e) {
-            // Ignore items that don't have the expected structure
+            // Ignore cards that don't match the structure, might be sealed product etc.
             continue;
         }
     }
