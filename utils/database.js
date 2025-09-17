@@ -1,20 +1,22 @@
+// witherflare/mtg-deal-finder/utils/database.js
 const sqlite3 = require('sqlite3').verbose();
 const path = require('node:path');
 const db = new sqlite3.Database(path.join(__dirname, '..', 'market-data.db'));
 
 function initializeDatabase() {
     db.serialize(() => {
-        // Price history table remains the same
         db.run(`
             CREATE TABLE IF NOT EXISTS price_history (
                 scryfall_id TEXT NOT NULL,
                 timestamp TEXT NOT NULL,
                 tcg_nm REAL, tcg_lp REAL, tcg_mp REAL, tcg_hp REAL, tcg_dmg REAL,
                 mana_nm REAL, mana_lp REAL, mana_mp REAL, mana_hp REAL, mana_dmg REAL,
+                ck_nm REAL, ck_ex REAL, ck_vg REAL, ck_g REAL,
+                scg_nm REAL, scg_pl REAL, scg_hp REAL,
+                csi_nm REAL, csi_pl REAL, csi_hp REAL,
                 PRIMARY KEY (scryfall_id, timestamp)
             )
         `);
-        // ADD image_uri column to the watchlist
         db.run(`
             CREATE TABLE IF NOT EXISTS watchlist (
                 scryfall_id TEXT PRIMARY KEY,
@@ -31,11 +33,6 @@ function initializeDatabase() {
     console.log('✅ Database initialized successfully.');
 }
 
-/**
- * Adds a specific card printing to the watchlist.
- * @param {object} cardPrinting The full card object from the scryfall data.
- * @returns {Promise<string>} A promise that resolves with a success or failure message.
- */
 function addToWatchlist(cardPrinting) {
     return new Promise((resolve) => {
         const sql = `INSERT INTO watchlist (scryfall_id, card_name, set_name, collector_number, scryfall_uri, image_uri) VALUES (?, ?, ?, ?, ?, ?)`;
@@ -45,7 +42,7 @@ function addToWatchlist(cardPrinting) {
             cardPrinting.set_name,
             cardPrinting.collector_number,
             cardPrinting.scryfall_uri,
-            cardPrinting.image_uris?.art_crop || cardPrinting.image_uris?.normal // Store the image URL
+            cardPrinting.image_uris?.art_crop || cardPrinting.image_uris?.normal
         ];
         db.run(sql, params, function(err) {
             if (err) {
@@ -61,14 +58,17 @@ function addToWatchlist(cardPrinting) {
     });
 }
 
-
-function saveScrapeData(scryfallId, tcgData, manapoolData) {
+function saveScrapeData(scryfallId, allData) {
     const timestamp = new Date().toISOString();
-    const sql = `INSERT INTO price_history (scryfall_id, timestamp, tcg_nm, tcg_lp, tcg_mp, tcg_hp, tcg_dmg, mana_nm, mana_lp, mana_mp, mana_hp, mana_dmg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO price_history (scryfall_id, timestamp, tcg_nm, tcg_lp, tcg_mp, tcg_hp, tcg_dmg, mana_nm, mana_lp, mana_mp, mana_hp, mana_dmg, ck_nm, ck_ex, ck_vg, ck_g, scg_nm, scg_pl, scg_hp, csi_nm, cfb_nm) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const params = [
         scryfallId, timestamp,
-        tcgData.lowestPrices?.NM || null, tcgData.lowestPrices?.LP || null, tcgData.lowestPrices?.MP || null, tcgData.lowestPrices?.HP || null, tcgData.lowestPrices?.DMG || null,
-        manapoolData.lowestPrices?.NM || null, manapoolData.lowestPrices?.LP || null, manapoolData.lowestPrices?.MP || null, manapoolData.lowestPrices?.HP || null, manapoolData.lowestPrices?.DMG || null,
+        allData.tcgplayerData?.lowestPrices?.NM || null, allData.tcgplayerData?.lowestPrices?.LP || null, allData.tcgplayerData?.lowestPrices?.MP || null, allData.tcgplayerData?.lowestPrices?.HP || null, allData.tcgplayerData?.lowestPrices?.DMG || null,
+        allData.manapoolData?.lowestPrices?.NM || null, allData.manapoolData?.lowestPrices?.LP || null, allData.manapoolData?.lowestPrices?.MP || null, allData.manapoolData?.lowestPrices?.HP || null, allData.manapoolData?.lowestPrices?.DMG || null,
+        allData.cardkingdomData?.lowestPrices?.NM || null, allData.cardkingdomData?.lowestPrices?.EX || null, allData.cardkingdomData?.lowestPrices?.VG || null, allData.cardkingdomData?.lowestPrices?.G || null,
+        allData.starcitygamesData?.lowestPrices?.NM || null, allData.starcitygamesData?.lowestPrices?.PL || null, allData.starcitygamesData?.lowestPrices?.HP || null,
+        allData.coolstuffincData?.lowestPrices?.NM || null,
+        allData.channelfireballData?.lowestPrices?.NM || null,
     ];
     db.run(sql, params, (err) => {
         if (err) console.error('Database Error - Failed to save scrape data:', err.message);
@@ -101,7 +101,7 @@ function getPriceHistory(scryfallId) {
         const sql = `SELECT * FROM price_history WHERE scryfall_id = ? ORDER BY timestamp ASC`;
         db.all(sql, [scryfallId], (err, rows) => {
             if (err) return reject(err);
-resolve(rows);
+            resolve(rows);
         });
     });
 }
@@ -115,8 +115,6 @@ function getWatchlist() {
     });
 }
 
-// --- THIS IS THE CORRECTED PART ---
-// Ensure all functions that other files need are listed here.
 module.exports = {
     initializeDatabase,
     saveScrapeData,

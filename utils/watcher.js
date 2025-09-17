@@ -1,16 +1,12 @@
+// witherflare/mtg-deal-finder/utils/watcher.js
 const { chromium } = require('playwright');
 const axios = require('axios');
 const db = require('./database');
 const { analyzeCard } = require('./scraper');
 
-// The interval for how often the watcher runs (e.g., every 4 hours)
 const WATCHER_INTERVAL_MS = 4 * 60 * 60 * 1000;
 let isRunning = false;
 
-/**
- * The main scraping and updating cycle for the watcher service.
- * @param {import('discord.js').Client} client The Discord client instance.
- */
 async function runWatcherCycle(client) {
     if (isRunning) {
         console.log('Watcher is already running. Skipping this cycle.');
@@ -34,7 +30,6 @@ async function runWatcherCycle(client) {
         console.log(`- Scraping watched card: ${item.card_name} (${item.set_name})`);
         
         try {
-            // Fetch the specific printing's data from the Scryfall API
             const response = await axios.get(`https://api.scryfall.com/cards/${item.scryfall_id}`);
             const printing = response.data;
 
@@ -52,8 +47,7 @@ async function runWatcherCycle(client) {
 
             const result = await analyzeCard(page, cardToAnalyze);
             if (result && !result.error) {
-                db.saveScrapeData(printing.id, result.tcgplayerData, result.manapoolData);
-                // Add a small delay to avoid rate-limiting
+                db.saveScrapeData(printing.id, result);
                 await new Promise(resolve => setTimeout(resolve, 2000));
             }
         } catch (error) {
@@ -65,15 +59,9 @@ async function runWatcherCycle(client) {
     isRunning = false;
 }
 
-/**
- * Initializes the watcher service to run on a recurring interval.
- * @param {import('discord.js').Client} client The Discord client instance.
- */
 function initializeWatcher(client) {
     console.log(`👀 Watcher initialized. Will run every ${WATCHER_INTERVAL_MS / 1000 / 60} minutes.`);
-    // Run the first cycle shortly after startup
     setTimeout(() => runWatcherCycle(client), 10000); 
-    // Set the recurring interval
     setInterval(() => runWatcherCycle(client), WATCHER_INTERVAL_MS);
 }
 

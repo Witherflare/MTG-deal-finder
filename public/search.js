@@ -1,5 +1,5 @@
+// witherflare/mtg-deal-finder/public/search.js
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Element Selectors ---
     const searchBar = document.getElementById('search-bar');
     const printingsContainer = document.getElementById('printings-container');
     const actionButtons = document.getElementById('action-buttons');
@@ -8,12 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnWatch = document.getElementById('btn-watch');
     const resultsContainer = document.getElementById('results-container');
 
-    // --- State Variables ---
     let cardNameList = [];
     let selectedPrinting = null;
 
-    // --- Initialization ---
-    // Fetch all card names to populate the autocomplete search bar
     fetch('/api/card-names')
         .then(res => res.json())
         .then(data => {
@@ -21,12 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
             new Awesomplete(searchBar, { list: cardNameList });
         });
 
-    // --- Event Listeners ---
-
-    // Event: A card name is selected from the autocomplete list
     searchBar.addEventListener('awesomplete-selectcomplete', async (event) => {
         const cardName = event.text.value;
-        // Reset the UI state
         printingsContainer.innerHTML = '<em>Loading printings...</em>';
         actionButtons.style.display = 'none';
         resultsContainer.innerHTML = '';
@@ -37,9 +30,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Card not found');
             const printings = await response.json();
             
-            printingsContainer.innerHTML = ''; // Clear "Loading..." message
+            printingsContainer.innerHTML = '';
             printings.forEach(printing => {
-                if (!printing.image_uris) return; // Skip cards without images (like art cards)
+                if (!printing.image_uris) return;
                 
                 const img = document.createElement('img');
                 img.src = printing.image_uris.small;
@@ -50,11 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemDiv.className = 'printing-item';
                 itemDiv.appendChild(img);
                 
-                // Event: A specific printing image is clicked
                 itemDiv.addEventListener('click', () => {
-                    // Deselect any previously selected item
                     document.querySelectorAll('.printing-item.selected').forEach(el => el.classList.remove('selected'));
-                    // Select the new item
                     itemDiv.classList.add('selected');
 
                     selectedPrinting = printing;
@@ -69,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Event: "Get Price" button is clicked
     btnScrape.addEventListener('click', async () => {
         if (!selectedPrinting) return;
         resultsContainer.innerHTML = '<h4>Scraping... This may take a moment.</h4>';
@@ -83,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
         displayScrapeResults(data);
     });
 
-    // Event: "Watch Card" button is clicked
     btnWatch.addEventListener('click', async () => {
         if (!selectedPrinting) return;
         resultsContainer.innerHTML = `<h4>Adding to watchlist...</h4>`;
@@ -97,28 +85,26 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.innerHTML = `<h4>${data.message || 'Done!'}</h4>`;
     });
 
-
-    // --- Helper function to display temporary scrape results ---
     function displayScrapeResults(result) {
         if (result.error) {
             resultsContainer.innerHTML = `<p class="error">Error: ${result.error}</p>`;
             return;
         }
 
-        const tcgPrices = Object.entries(result.tcgplayerData.lowestPrices).map(([cond, price]) => `<li>${cond}: $${price.toFixed(2)}</li>`).join('');
-        const mpPrices = Object.entries(result.manapoolData.lowestPrices).map(([cond, price]) => `<li>${cond}: $${price.toFixed(2)}</li>`).join('');
+        const createPriceList = (data) => {
+            if (!data || !data.lowestPrices) return '<li>No listings found.</li>';
+            return Object.entries(data.lowestPrices).map(([cond, price]) => `<li>${cond}: $${price.toFixed(2)}</li>`).join('');
+        };
         
         resultsContainer.innerHTML = `
             <h3>${result.cardName} (${result.setName})</h3>
             <div class="results-grid">
-                <div>
-                    <h4>TCGplayer</h4>
-                    <ul>${tcgPrices || '<li>No listings found.</li>'}</ul>
-                </div>
-                <div>
-                    <h4>ManaPool</h4>
-                    <ul>${mpPrices || '<li>No listings found.</li>'}</ul>
-                </div>
+                <div><h4>TCGplayer</h4><ul>${createPriceList(result.tcgplayerData)}</ul></div>
+                <div><h4>ManaPool</h4><ul>${createPriceList(result.manapoolData)}</ul></div>
+                <div><h4>Card Kingdom</h4><ul>${createPriceList(result.cardkingdomData)}</ul></div>
+                <div><h4>Star City Games</h4><ul>${createPriceList(result.starcitygamesData)}</ul></div>
+                <div><h4>CoolStuffInc</h4><ul>${createPriceList(result.coolstuffincData)}</ul></div>
+                <div><h4>ChannelFireball</h4><ul>${createPriceList(result.channelfireballData)}</ul></div>
             </div>
         `;
     }

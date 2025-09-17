@@ -1,3 +1,4 @@
+// witherflare/mtg-deal-finder/public/dashboard-view.js
 document.addEventListener('DOMContentLoaded', async () => {
     const dashboard = document.getElementById('dashboard');
     dashboard.innerHTML = '<h2>Loading Watchlist...</h2>';
@@ -10,13 +11,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // This loop will now correctly process ALL items
     for (const item of watchlist) {
         const history = await (await fetch(`/api/history/${item.scryfall_id}`)).json();
         const cardContainer = document.createElement('div');
         cardContainer.className = 'dashboard-card';
         
-        // Use the image_uri and scryfall_uri directly from the database
         cardContainer.innerHTML = `
             <a href="${item.scryfall_uri}" target="_blank">
                 <img src="${item.image_uri}" alt="${item.card_name}" class="card-art">
@@ -39,7 +38,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// The createChart function remains the same
 function createChart(canvas, history) {
     const parseTimestamp = (ts) => ts ? new Date(ts).getTime() : null;
     new Chart(canvas.getContext('2d'), {
@@ -47,13 +45,21 @@ function createChart(canvas, history) {
         data: {
             datasets: [
                 { label: 'TCGplayer (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.tcg_nm })), borderColor: '#fd5c63' },
-                { label: 'ManaPool (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.mana_nm })), borderColor: '#0d6efd' }
+                { label: 'ManaPool (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.mana_nm })), borderColor: '#0d6efd' },
+                { label: 'Card Kingdom (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.ck_nm })), borderColor: '#28a745' },
+                { label: 'Star City Games (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.scg_nm })), borderColor: '#ffc107' },
+                { label: 'CoolStuffInc (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.csi_nm })), borderColor: '#6f42c1' },
+                { label: 'ChannelFireball (NM)', data: history.map(d => ({ x: parseTimestamp(d.timestamp), y: d.cfb_nm })), borderColor: '#fd7e14' }
             ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } }
+            plugins: { legend: { display: true, position: 'bottom' } },
+            scales: {
+                x: { type: 'time', time: { unit: 'day' } },
+                y: { ticks: { callback: (value) => `$${value.toFixed(2)}` } }
+            }
         }
     });
 }
