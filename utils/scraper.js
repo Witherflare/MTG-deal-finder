@@ -3,19 +3,17 @@ const { scrapeTcgplayerData } = require('../scrapers/tcgplayer');
 const { scrapeManaPoolListings } = require('../scrapers/manapool');
 
 /**
- * Analyzes a card by scraping data from multiple vendors.
- * @param {import('playwright').Page} page The Playwright page object.
+ * Analyzes a card by scraping data from multiple vendors in parallel.
+ * @param {import('playwright').Page} tcgplayerPage The Playwright page object for TCGPlayer.
+ * @param {import('playwright').Page} manapoolPage The Playwright page object for ManaPool.
  * @param {object} card The card to analyze.
  * @returns {Promise<object>} An object containing the scraped data and any errors.
  */
-async function analyzeCard(page, card) {
+async function analyzeCard(tcgplayerPage, manapoolPage, card) {
     const result = { 
         ...card, 
         tcgplayerData: null, 
         manapoolData: null, 
-        cardkingdomData: null,
-        starcitygamesData: null,
-        coolstuffincData: null,
         error: null 
     };
 
@@ -24,22 +22,26 @@ async function analyzeCard(page, card) {
         return result;
     }
 
-    try {
-        result.tcgplayerData = await scrapeTcgplayerData(page, card.tcgplayer_id);
-    } catch (error) {
-        console.error(`  ... ❌ Failed to scrape TCGplayer for ${card.cardName}: ${error.message}`);
-        result.tcgplayerData = { error: error.message };
-    }
+    // Run scrapers in parallel
+    const tcgplayerPromise = scrapeTcgplayerData(tcgplayerPage, card.tcgplayer_id).catch(err => ({ error: err.message }));
+    const manapoolPromise = scrapeManaPoolListings(manapoolPage, card.manaPoolUrl).catch(err => ({ error: err.message }));
 
-    try {
-        result.manapoolData = await scrapeManaPoolListings(page, card.manaPoolUrl);
-    } catch (error) {
-        console.error(`  ... ❌ Failed to scrape ManaPool for ${card.cardName}: ${error.message}`);
-        result.manapoolData = { error: error.message };
+    const [tcgplayerResult, manapoolResult] = await Promise.all([
+        tcgplayerPromise,
+        manapoolPromise
+    ]);
+
+    result.tcgplayerData = tcgplayerResult;
+    result.manapoolData = manapoolResult;
+
+    if (tcgplayerResult.error) {
+        console.error(`  ... ❌ Failed to scrape TCGplayer for ${card.cardName}: ${tcgplayerResult.error}`);
+    }
+    if (manapoolResult.error) {
+        console.error(`  ... ❌ Failed to scrape ManaPool for ${card.cardName}: ${manapoolResult.error}`);
     }
 
     console.log(`  ... ✔️ Finished scraping ${card.cardName}.`);
-
     return result;
 }
 

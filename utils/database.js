@@ -11,6 +11,7 @@ function initializeDatabase() {
                 timestamp TEXT NOT NULL,
                 tcg_nm REAL, tcg_lp REAL, tcg_mp REAL, tcg_hp REAL, tcg_dmg REAL,
                 mana_nm REAL, mana_lp REAL, mana_mp REAL, mana_hp REAL, mana_dmg REAL,
+                scryfall_usd REAL,
                 PRIMARY KEY (scryfall_id, timestamp)
             )
         `);
@@ -39,7 +40,7 @@ function addToWatchlist(cardPrinting) {
             cardPrinting.set_name,
             cardPrinting.collector_number,
             cardPrinting.scryfall_uri,
-            cardPrinting.image_uris?.art_crop || cardPrinting.image_uris?.normal
+            cardPrinting.image_uris?.normal
         ];
         db.run(sql, params, function(err) {
             if (err) {
@@ -57,35 +58,15 @@ function addToWatchlist(cardPrinting) {
 
 function saveScrapeData(scryfallId, allData) {
     const timestamp = new Date().toISOString();
-    const sql = `INSERT INTO price_history (scryfall_id, timestamp, tcg_nm, tcg_lp, tcg_mp, tcg_hp, tcg_dmg, mana_nm, mana_lp, mana_mp, mana_hp, mana_dmg, ck_nm, ck_ex, ck_vg, ck_g, scg_nm, scg_pl, scg_hp, csi_nm, cfb_nm) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const sql = `INSERT INTO price_history (scryfall_id, timestamp, tcg_nm, tcg_lp, tcg_mp, tcg_hp, tcg_dmg, mana_nm, mana_lp, mana_mp, mana_hp, mana_dmg, scryfall_usd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const params = [
         scryfallId, timestamp,
         allData.tcgplayerData?.lowestPrices?.NM || null, allData.tcgplayerData?.lowestPrices?.LP || null, allData.tcgplayerData?.lowestPrices?.MP || null, allData.tcgplayerData?.lowestPrices?.HP || null, allData.tcgplayerData?.lowestPrices?.DMG || null,
         allData.manapoolData?.lowestPrices?.NM || null, allData.manapoolData?.lowestPrices?.LP || null, allData.manapoolData?.lowestPrices?.MP || null, allData.manapoolData?.lowestPrices?.HP || null, allData.manapoolData?.lowestPrices?.DMG || null,
+        allData.scryfallPrice || null
     ];
     db.run(sql, params, (err) => {
         if (err) console.error('Database Error - Failed to save scrape data:', err.message);
-    });
-}
-
-function setMessageIdForWatchedCard(scryfallId, messageId) {
-    db.run(`UPDATE watchlist SET message_id = ? WHERE scryfall_id = ?`, [messageId, scryfallId], (err) => {
-        if (err) console.error('Database Error - Failed to set message ID:', err.message);
-    });
-}
-
-function removeFromWatchlist(name) {
-     return new Promise((resolve) => {
-        const sql = `DELETE FROM watchlist WHERE card_name = ? COLLATE NOCASE`;
-        db.run(sql, [name], function(err) {
-            if (err) {
-                resolve('An error occurred while removing from the watchlist.');
-            } else if (this.changes === 0) {
-                resolve(`'${name}' was not found on the watchlist.`);
-            } else {
-                resolve(`Successfully removed all watched versions of '${name}' from the watchlist.`);
-            }
-        });
     });
 }
 
@@ -108,12 +89,37 @@ function getWatchlist() {
     });
 }
 
+function getDashboardData() {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            SELECT
+                w.*,
+                p.tcg_nm,
+                p.mana_nm
+            FROM watchlist w
+            LEFT JOIN (
+                SELECT scryfall_id, tcg_nm, mana_nm
+                FROM price_history
+                WHERE (scryfall_id, timestamp) IN (
+                    SELECT scryfall_id, MAX(timestamp)
+                    FROM price_history
+                    GROUP BY scryfall_id
+                )
+            ) p ON w.scryfall_id = p.scryfall_id
+        `;
+        db.all(sql, [], (err, rows) => {
+            if (err) return reject(err);
+            resolve(rows);
+        });
+    });
+}
+
+
 module.exports = {
     initializeDatabase,
-    saveScrapeData,
-    setMessageIdForWatchedCard,
     addToWatchlist,
-    removeFromWatchlist,
+    saveScrapeData,
     getPriceHistory,
     getWatchlist,
+    getDashboardData,
 };

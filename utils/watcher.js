@@ -4,29 +4,51 @@ const axios = require('axios');
 const db = require('./database');
 const { analyzeCard } = require('./scraper');
 
-const WATCHER_INTERVAL_MS = 4 * 60 * 60 * 1000;
-let isRunning = false;
+const WATCHER_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
 
-async function runWatcherCycle(client) {
-    if (isRunning) {
+// Shared status object
+let watcherStatus = {
+    isRunning: false,
+    currentCard: 'None',
+    progress: 0,
+    total: 0,
+    status: 'Idle',
+    averageTime: 0,
+    timeLeft: 'N/A'
+};
+let scrapeTimes = [];
+
+async function runWatcherCycle() {
+    if (watcherStatus.isRunning) {
         console.log('Watcher is already running. Skipping this cycle.');
         return;
     }
 
-    isRunning = true;
+    const cycleStartTime = Date.now();
+    watcherStatus.isRunning = true;
+    watcherStatus.status = 'Initializing...';
     console.log('--- 🏃‍♂️ Starting Watcher Cycle ---');
     
     const watchlist = await db.getWatchlist();
     if (watchlist.length === 0) {
         console.log('Watchlist is empty. Ending cycle.');
-        isRunning = false;
+        watcherStatus = { isRunning: false, currentCard: 'None', progress: 0, total: 0, status: 'Idle', averageTime: 0, timeLeft: 'N/A' };
         return;
     }
 
-    const browser = await chromium.launch({ headless: false, args: ['--window-position=-2000,0'] });
-    const page = await browser.newPage();
+    watcherStatus.total = watchlist.length;
+    watcherStatus.progress = 0;
+    scrapeTimes = [];
 
-    for (const item of watchlist) {
+    const browser = await chromium.launch({ headless: false });
+    const tcgplayerPage = await browser.newPage();
+    const manapoolPage = await browser.newPage();
+
+    for (const [index, item] of watchlist.entries()) {
+        const cardScrapeStartTime = Date.now();
+        watcherStatus.progress = index + 1;
+        watcherStatus.currentCard = `${item.card_name} (${item.set_name})`;
+        watcherStatus.status = `Scraping card ${index + 1} of ${watchlist.length}`;
         console.log(`- Scraping watched card: ${item.card_name} (${item.set_name})`);
         
         try {
@@ -45,24 +67,43 @@ async function runWatcherCycle(client) {
                 manaPoolUrl: `https://manapool.com/card/${printing.set}/${printing.collector_number}/${printing.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`
             };
 
-            const result = await analyzeCard(page, cardToAnalyze);
+            const result = await analyzeCard(tcgplayerPage, manapoolPage, cardToAnalyze);
             if (result && !result.error) {
+                result.scryfallPrice = printing.prices.usd;
                 db.saveScrapeData(printing.id, result);
-                await new Promise(resolve => setTimeout(resolve, 2000));
             }
         } catch (error) {
             console.error(`  -> Failed to scrape ${item.card_name} (${item.set_name}):`, error.message);
         }
+        
+        const cardScrapeEndTime = Date.now();
+        const timeTaken = (cardScrapeEndTime - cardScrapeStartTime) / 1000;
+        scrapeTimes.push(timeTaken);
+        
+        const totalScrapeTime = scrapeTimes.reduce((a, b) => a + b, 0);
+        watcherStatus.averageTime = totalScrapeTime / scrapeTimes.length;
+
+        const cardsRemaining = watcherStatus.total - watcherStatus.progress;
+        const estimatedTimeRemaining = cardsRemaining * watcherStatus.averageTime;
+        
+        const minutes = Math.floor(estimatedTimeRemaining / 60);
+        const seconds = Math.floor(estimatedTimeRemaining % 60);
+        watcherStatus.timeLeft = `${minutes}m ${seconds}s`;
     }
     
     await browser.close();
-    isRunning = false;
+    console.log('--- ✅ Watcher Cycle Complete ---');
+    watcherStatus = { isRunning: false, currentCard: 'None', progress: 0, total: 0, status: 'Idle', averageTime: 0, timeLeft: 'N/A' };
 }
 
-function initializeWatcher(client) {
+function initializeWatcher() {
     console.log(`👀 Watcher initialized. Will run every ${WATCHER_INTERVAL_MS / 1000 / 60} minutes.`);
-    setTimeout(() => runWatcherCycle(client), 10000); 
-    setInterval(() => runWatcherCycle(client), WATCHER_INTERVAL_MS);
+    setTimeout(runWatcherCycle, 10000); 
+    setInterval(runWatcherCycle, WATCHER_INTERVAL_MS);
 }
 
-module.exports = { initializeWatcher };
+function getWatcherStatus() {
+    return watcherStatus;
+}
+
+module.exports = { initializeWatcher, getWatcherStatus };

@@ -32,17 +32,17 @@ async function scrapeTcgplayerData(page, tcgplayer_id) {
     }
     
     try {
-        const lastSoldPriceText = await page.locator('tr:has-text("Most Recent Sale") .price-points__upper__price').textContent({ timeout: 5000 });
+        const lastSoldPriceText = await page.locator('tr:has-text("Most Recent Sale") .price-points__upper__price').textContent({ timeout: 3000 });
         data.lastSoldPrice = parseFloat(lastSoldPriceText.replace('$', ''));
     } catch (e) { data.lastSoldPrice = null; }
 
     try {
-        const totalSoldText = await page.locator('tr:has-text("Total Sales") .sales-data__price').textContent({ timeout: 5000 });
+        const totalSoldText = await page.locator('tr:has-text("Total Sold") .sales-data__price').textContent({ timeout: 3000 });
         data.totalSold = parseInt(totalSoldText.trim(), 10);
     } catch (e) { data.totalSold = 0; }
     
     try {
-        const currentQuantityText = await page.locator('tr:has-text("Current Quantity:") .price-points__lower__price').textContent({ timeout: 5000 });
+        const currentQuantityText = await page.locator('tr:has-text("Current Quantity:") .price-points__lower__price').textContent({ timeout: 3000 });
         data.currentQuantity = parseInt(currentQuantityText.trim(), 10);
     } catch (e) { data.currentQuantity = 0; }
 

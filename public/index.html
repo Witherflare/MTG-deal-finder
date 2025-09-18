@@ -6,15 +6,33 @@
     <title>MTG Market Dashboard</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/awesomplete@1.1.5/awesomplete.css" />
     <script src="https://cdn.jsdelivr.net/npm/awesomplete@1.1.5/awesomplete.min.js" async></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/date-fns@^3.0.0/index.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@^3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
     <div class="container">
-        <h1>MTG Market Search</h1>
+        <div class="main-header">
+            <h1>MTG Market Search</h1>
+            <a href="/dashboard" class="button-primary">Go to Dashboard &rarr;</a>
+        </div>
+
         <div class="search-container">
+             <button class="accordion">View Scraper Status</button>
+             <div class="panel">
+                <div id="watcher-status-container">
+                    <p><strong>Status:</strong> <span id="status-text">Idle</span></p>
+                    <p><strong>Currently Scraping:</strong> <span id="current-card-text">None</span></p>
+                    <div class="progress-bar-container">
+                        <div id="progress-bar" class="progress-bar"></div>
+                    </div>
+                    <p id="progress-text" class="progress-text-label">0 / 0</p>
+                    <p><strong>Avg. Scrape Time:</strong> <span id="avg-time-text">N/A</span></p>
+                    <p><strong>Est. Time Left:</strong> <span id="time-left-text">N/A</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="search-container">
+            <h2>Search for a Card</h2>
             <input type="text" id="search-bar" placeholder="Enter a card name..." class="awesomplete">
             <div id="printings-container"></div>
             <div id="action-buttons" class="action-buttons">
@@ -24,7 +42,27 @@
             </div>
             <div id="results-container"></div>
         </div>
-        <a href="/dashboard" class="dashboard-link">View Permanent Watchlist Dashboard &rarr;</a>
+
+        <div class="search-container">
+            <h2>Bulk Add Tools</h2>
+            <button class="accordion">Add from Scryfall Query</button>
+            <div class="panel">
+                <input type="text" id="scryfall-query-bar" placeholder="e.g., set=mkm -is:digital">
+                <div class="action-buttons" style="display: block; margin-top: 1rem;">
+                     <button id="btn-watch-query">Watch All from Query</button>
+                </div>
+                 <div id="scryfall-results-container"></div>
+            </div>
+
+            <button class="accordion">Add All Cards Above a Certain Value</button>
+            <div class="panel">
+                <input type="number" id="value-bar" placeholder="Enter a dollar amount (e.g., 5)">
+                <div class="action-buttons" style="display: block; margin-top: 1rem;">
+                    <button id="btn-watch-valuable">Watch All Above Value</button>
+                </div>
+                <div id="valuable-results-container"></div>
+            </div>
+        </div>
     </div>
     <script src="/search.js"></script>
 </body>

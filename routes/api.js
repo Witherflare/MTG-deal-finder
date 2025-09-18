@@ -2,18 +2,18 @@ const express = require('express');
 const axios = require('axios');
 const { chromium } = require('playwright');
 const db = require('../utils/database');
-const { getCardNames } = require('../utils/card-data');
+const { getCardNames, processValuableCardsFromStream } = require('../utils/card-data');
 const { analyzeCard } = require('../utils/scraper');
+const { getWatcherStatus } = require('../utils/watcher');
 
-// --- THIS IS THE FIX ---
-// 1. Create a router instance instead of using 'app'
 const router = express.Router();
-// --- END FIX ---
 
-// All routes are now attached to 'router'
+// --- API Routes ---
 router.get('/card-names', (req, res) => res.json(getCardNames()));
-router.get('/watchlist', async (req, res) => res.json(await db.getWatchlist()));
+router.get('/dashboard-data', async (req, res) => res.json(await db.getDashboardData()));
 router.get('/history/:scryfallId', async (req, res) => res.json(await db.getPriceHistory(req.params.scryfallId)));
+router.get('/watcher-status', (req, res) => res.json(getWatcherStatus()));
+
 
 router.get('/printings/:cardName', async (req, res) => {
     try {
@@ -32,15 +32,19 @@ router.post('/scrape', async (req, res) => {
         return res.status(400).json({ error: 'A specific card printing with a TCGplayer ID is required.' });
     }
     try {
-        const browser = await chromium.launch({ headless: false, args: ['--window-position=-2000,0'] });
-        const page = await browser.newPage();
+        // Launch one browser, but create two pages for parallel work
+        const browser = await chromium.launch({ headless: false });
+        const tcgplayerPage = await browser.newPage();
+        const manapoolPage = await browser.newPage();
+
         const cardToAnalyze = {
             cardName: card.name,
             setName: card.set_name,
             tcgplayer_id: card.tcgplayer_id,
             manaPoolUrl: `https://manapool.com/card/${card.set}/${card.collector_number}/${card.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')}`
         };
-        const result = await analyzeCard(page, cardToAnalyze);
+        // Pass both pages to the analyzeCard function
+        const result = await analyzeCard(tcgplayerPage, manapoolPage, cardToAnalyze);
         await browser.close();
         res.json(result);
     } catch (error) {
@@ -59,5 +63,44 @@ router.post('/watch', async (req, res) => {
     }
 });
 
-// Export the configured router
+router.post('/watch-scryfall-query', async (req, res) => {
+    const { query } = req.body;
+    if (!query) return res.status(400).json({ error: 'A Scryfall query is required.' });
+
+    try {
+        let allCards = [];
+        let url = `https://api.scryfall.com/cards/search?q=${encodeURIComponent(query)}`;
+
+        while (url) {
+            const response = await axios.get(url);
+            allCards = allCards.concat(response.data.data);
+            url = response.data.has_more ? response.data.next_page : null;
+        }
+
+        let addedCount = 0;
+        let alreadyExistsCount = 0;
+
+        for (const card of allCards) {
+            const resultMessage = await db.addToWatchlist(card);
+            if (resultMessage.startsWith('Successfully added')) {
+                addedCount++;
+            } else if (resultMessage.includes('is already on the watchlist')) {
+                alreadyExistsCount++;
+            }
+        }
+        res.json({ message: `Successfully added ${addedCount} cards. ${alreadyExistsCount} cards were already on the watchlist.` });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch cards from Scryfall or add them to the watchlist.' });
+    }
+});
+
+router.post('/watch-valuable-cards', (req, res) => {
+    const { minValue } = req.body;
+    if (!minValue) return res.status(400).json({ error: 'A minimum value is required.' });
+
+    processValuableCardsFromStream(minValue);
+    res.json({ message: `Started adding cards with a value over $${minValue}. This will take a long time and run in the background.` });
+});
+
+
 module.exports = router;

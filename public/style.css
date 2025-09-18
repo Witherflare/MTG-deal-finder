@@ -20,7 +20,7 @@ h1, h2, h3, h4 {
     margin-bottom: 2rem;
 }
 
-#search-bar {
+#search-bar, #dashboard-search-bar, #scryfall-query-bar, #value-bar {
     width: 100%;
     padding: 0.75rem;
     font-size: 1rem;
@@ -28,6 +28,7 @@ h1, h2, h3, h4 {
     border: 1px solid #555;
     color: #d4d4d4;
     border-radius: 4px;
+    box-sizing: border-box;
 }
 
 .awesomplete > ul {
@@ -51,10 +52,11 @@ button {
 }
 
 #btn-scrape { background-color: #3a86ff; color: white; }
-#btn-watch { background-color: #2a9d8f; color: white; }
+#btn-watch, #btn-watch-query, #btn-watch-valuable { background-color: #2a9d8f; color: white; }
 
-#results-container { 
-    margin-top: 1.5rem; 
+
+#results-container, #scryfall-results-container, #valuable-results-container {
+    margin-top: 1.5rem;
     padding: 1rem;
     background-color: #3c3c3c;
     border-radius: 4px;
@@ -111,40 +113,242 @@ button {
 .container { max-width: 1200px; margin: 0 auto; }
 .dashboard-link { display: block; text-align: center; margin-top: 2rem; color: #58a6ff; }
 
-/* New Dashboard Styles */
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
-    gap: 1.5rem;
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
 }
+
+/* --- New Dashboard Styles --- */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+#watcher-status-button {
+    background-color: #4a4a4a;
+    color: white;
+}
+#dashboard-container {
+    height: 60vh;
+    overflow-y: scroll;
+    position: relative;
+    border: 1px solid #444;
+    border-radius: 8px;
+}
+.dashboard-grid {
+    position: relative;
+}
+
+.card-wrapper {
+    position: absolute;
+    box-sizing: border-box;
+    padding: 12px;
+}
+
 .dashboard-card {
     background-color: #2a2a2a;
-    border-radius: 8px;
-    padding: 1rem;
-    text-align: center;
-}
-.dashboard-card a {
-    text-decoration: none;
-    color: #d4d4d4;
-}
-.dashboard-card h2 {
-    font-size: 1.2rem;
-    color: #d4d4d4;
-    margin: 0.5rem 0 0.2rem 0;
-    border: none;
-}
-.dashboard-card p {
-    font-size: 0.9rem;
-    color: #888;
-    margin-top: 0;
-}
-.card-art {
-    width: 100%;
     border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    will-change: transform;
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+.dashboard-card-image {
+    width: 100%;
+    display: block;
+}
+.dashboard-card-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+    padding: 2rem 1rem 1rem 1rem;
+    color: white;
+}
+.dashboard-card-info h2 {
+    font-size: 1rem;
+    margin: 0 0 0.25rem 0;
+    padding: 0;
+    border: none;
+    color: white;
+    text-shadow: 1px 1px 3px black;
+}
+.dashboard-card-info p {
+    font-size: 0.8rem;
+    margin: 0;
+    color: #ccc;
+    font-weight: bold;
+}
+.price-container {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    margin-top: 0.5rem;
+    font-family: monospace;
+}
+
+/* --- Watcher Status Styles --- */
+#watcher-status-modal .modal-content {
+    max-width: 600px;
+}
+
+#watcher-status-modal h3 {
+    margin-top: 0;
+    border-bottom: none;
+}
+#watcher-status-modal p {
+    margin: 0.5rem 0;
+}
+.progress-bar-container {
+    width: 100%;
+    background-color: #3c3c3c;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+.progress-bar {
+    width: 0%;
+    height: 20px;
+    background-color: #2a9d8f;
+    transition: width 0.3s ease-in-out;
+    text-align: center;
+    line-height: 20px;
+    color: white;
+}
+.progress-text-label {
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+/* --- Modal Styles --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+}
+.modal-content {
+    background-color: #2a2a2a;
+    margin: 5% auto;
+    padding: 25px;
+    border: 1px solid #444;
+    width: 80%;
+    max-width: 1200px;
+    border-radius: 8px;
+    position: relative;
+}
+.modal-content .close-button {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.modal-content .close-button:hover,
+.modal-content .close-button:focus {
+    color: white;
+}
+.modal-body {
+    display: flex;
+    gap: 2rem;
+}
+.modal-image-container {
+    flex-basis: 35%;
+}
+#modal-card-image {
+    width: 100%;
+    border-radius: 15px;
+}
+.modal-info-container {
+    flex-basis: 65%;
+}
+.chart-container-modal {
+    position: relative;
+    height: 400px;
+    width: 100%;
+}
+
+.accordion {
+    background-color: #3c3c3c;
+    color: #d4d4d4;
+    cursor: pointer;
+    padding: 1rem;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 1rem;
+    transition: background-color 0.2s ease;
+    border-radius: 4px;
     margin-bottom: 0.5rem;
 }
-.chart-container {
-    position: relative;
-    height: 300px;
+.accordion:hover, .accordion.active {
+    background-color: #4a4a4a;
+}
+.panel {
+    padding: 0 1rem;
+    background-color: #2a2a2a;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+    margin-bottom: 1rem;
+}
+#watcher-status-container {
+    padding: 1rem 0;
+}
+#watcher-status-container p {
+    margin: 0.5rem 0;
+}
+.progress-bar-container {
     width: 100%;
+    background-color: #3c3c3c;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+.progress-bar {
+    width: 0%;
+    height: 20px;
+    background-color: #2a9d8f;
+    transition: width 0.3s ease-in-out;
+    text-align: center;
+    line-height: 20px;
+    color: white;
+}
+.progress-text-label {
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.button-primary {
+    background-color: #3a86ff;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+}
+.button-primary:hover {
+    background-color: #58a6ff;
 }

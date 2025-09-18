@@ -7,10 +7,57 @@
 </head>
 <body>
     <div class="container">
-        <h1>Permanent Watchlist Dashboard</h1>
-        <div id="dashboard" class="dashboard-grid">
+        <div class="dashboard-header">
+            <h1>Permanent Watchlist Dashboard</h1>
+            <button id="watcher-status-button">View Scraper Status</button>
+        </div>
+
+        <div class="search-container">
+            <input type="text" id="dashboard-search-bar" placeholder="Filter watched cards...">
+        </div>
+        <div id="dashboard-container">
+            <div id="dashboard" class="dashboard-grid">
             </div>
+        </div>
     </div>
+
+    <div id="card-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <div class="modal-body">
+                <div class="modal-image-container">
+                    <img id="modal-card-image" src="" alt="Card Image">
+                </div>
+                <div class="modal-info-container">
+                    <h2 id="modal-card-name"></h2>
+                    <p id="modal-card-set"></p>
+                    <div class="chart-container-modal">
+                        <canvas id="modal-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="watcher-status-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3>Watcher Status</h3>
+            <p><strong>Status:</strong> <span id="status-text">Idle</span></p>
+            <p><strong>Currently Scraping:</strong> <span id="current-card-text">None</span></p>
+            <div class="progress-bar-container">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            <p id="progress-text" class="progress-text-label">0 / 0</p>
+            <p><strong>Avg. Scrape Time:</strong> <span id="avg-time-text">N/A</span></p>
+            <p><strong>Est. Time Left:</strong> <span id="time-left-text">N/A</span></p>
+        </div>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@^3.0.0/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@^3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="/dashboard-view.js"></script>
 </body>
 </html>
